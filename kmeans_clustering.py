@@ -25,26 +25,12 @@ LOCAL_MODE = 'local'
 REMOTE_MODE = 'remote'
 NUM_TOPICS = 1
 TOPN = 30
+num_topics = 10
 
 
 PICKLE_DOC = 'dataset_doc.npy'
 PICKLE_NAME = 'dataset_name.npy'
 PICKLE_PATH = 'dataset_path.npy'
-
-labels = [
-    'birth',  # 5年ぶり出生率増加
-    'ekiden',  # ニューイヤー駅伝関連
-    'tunnel',  # 君津のトンネルのモルタル剥離
-    'ikukyu',  # 国会議員の育休取得
-    'fe',  # 日本食品標準成分表のひじきの鉄分含有量修正
-    'takahama',  # 高浜原発関連
-    'thief',  # キングオブコメディの高橋健一逮捕
-    'starwars',  # スターウォーズ（フォースの覚醒）関連
-    'design',  # 国立競技場のデザイン関連
-    'riken',  # 理研の新元素命名権獲得
-]
-num_topics = len(labels)
-
 
 def unpickle(filename):
     with open(filename, 'rb') as fo:
@@ -258,7 +244,7 @@ def get_topics(corpus, dictionary):
     return topics
 
 
-def cluster_docs():
+def cluster_docs(mode='cluster'):
     print('# MORPHOLOGICAL ANALYSIS ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     # docs, file_names, file_paths = get_docs(join(HOME, DATASET_PATH_1), LOCAL_MODE)
 
@@ -307,25 +293,27 @@ def cluster_docs():
         pass
 
     # find optimal cluster numbers
+    if mode == 'elbow_analysis':
+        distortions = []
+        for i in range(1, 40):  # 1~10クラスタまで一気に計算
+            km = KMeans(n_clusters=i,
+                        init='k-means++',  # k-means++法によりクラスタ中心を選択
+                        n_init=10,
+                        max_iter=300,
+                        random_state=0)
+            km.fit(cleanedList)  # クラスタリングの計算を実行
+            distortions.append(km.inertia_)  # km.fitするとkm.inertia_が得られる
 
-    # distortions = []
-    #
-    # for i in range(1, 40):  # 1~10クラスタまで一気に計算
-    #     km = KMeans(n_clusters=i,
-    #                 init='k-means++',  # k-means++法によりクラスタ中心を選択
-    #                 n_init=10,
-    #                 max_iter=300,
-    #                 random_state=0)
-    #     km.fit(cleanedList)  # クラスタリングの計算を実行
-    #     distortions.append(km.inertia_)  # km.fitするとkm.inertia_が得られる
-    #
-    # plt.plot(range(1, 40), distortions, marker='o')
-    # plt.xlabel('Number of clusters')
-    # plt.ylabel('Distortion')
-    # plt.show()
+        plt.plot(range(1, 40), distortions, marker='o')
+        plt.xlabel('Number of clusters')
+        plt.ylabel('Distortion')
+        plt.show()
+        return
 
-    range_n_clusters = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    silhouette_analysis(cleanedList, range_n_clusters)
+    if mode == 'silhouette_analysis':
+        range_n_clusters = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        silhouette_analysis(cleanedList, range_n_clusters)
+        return
 
     result = KMeans(n_clusters=num_topics).fit_predict(cleanedList)
     for i, docname in enumerate(filtered_file_name):
