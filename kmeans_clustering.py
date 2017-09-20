@@ -14,7 +14,7 @@ from collections import defaultdict
 import word_cloud
 from datetime import datetime
 import json
-from test_kmeans_cluster_numbers import silhouette_analysis
+from kmeans_cluster_numbers import silhouette_analysis
 import matplotlib.pyplot as plt
 
 HOME = os.path.expanduser("~")
