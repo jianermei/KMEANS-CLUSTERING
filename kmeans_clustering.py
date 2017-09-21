@@ -322,22 +322,39 @@ def cluster_docs(mode='cluster'):
     print('# Show topics ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     # find same items in result and collect them from docname
     # then get LDA topics for this collected content
+    cluster_result_doc = {}
+    cluster_result_word = {}
     for dup in sorted(list_duplicates(result)):
         print dup
 
+
         corpus = []
+        categoried_file_names = []
         for idx in dup[1]:
             categoried_file_name = basename(filtered_file_name[idx])
             corpus.append(bow_docs[categoried_file_name])
+            categoried_file_names.append(categoried_file_name)
+
+        cluster_result_doc[str(dup[0])] = categoried_file_names
 
         topics = get_topics(corpus, dct)
+        cluster_result_word[str(dup[0])] = topics
 
         outputfilename = str(dup[0])
         with open(outputfilename+'.json', 'wb') as outfile:
             json.dump(topics, outfile)
         word_cloud.create_wordcloud(" ".join(topics).decode('utf-8'), outputfilename)
 
+    with open('cluster_result_doc.json', 'wb') as outfile:
+        json.dump(cluster_result_doc, outfile)
+
+    with open('cluster_result_word.json', 'wb') as outfile:
+        json.dump(cluster_result_word, outfile)
+
     pass
+
+
+
 
 
 cluster_docs()
