@@ -335,10 +335,10 @@ def cluster_docs(mode='cluster'):
             corpus.append(bow_docs[categoried_file_name])
             categoried_file_names.append(categoried_file_name)
 
-        cluster_result_doc[str(dup[0])] = categoried_file_names
+        cluster_result_doc[str(dup[0])] = ",".join(categoried_file_names).encode('utf-8')
 
         topics = get_topics(corpus, dct)
-        cluster_result_word[str(dup[0])] = topics
+        cluster_result_word[str(dup[0])] = ",".join(topics).decode('utf-8')
 
         outputfilename = str(dup[0])
         with open(outputfilename+'.json', 'wb') as outfile:
