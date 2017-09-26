@@ -16,6 +16,8 @@ from datetime import datetime
 import json
 from kmeans_cluster_numbers import silhouette_analysis
 import matplotlib.pyplot as plt
+import commands
+
 
 HOME = os.path.expanduser("~")
 DATASET_PATH_1 = u'青空文庫2'
@@ -229,6 +231,23 @@ def get_content(file_path, mode=LOCAL_MODE):
     return content
 
 
+def prepare_termextract():
+    mode = 'store'
+    dataset = join(HOME, DATASET_PATH_1)
+    termCommand = 'python3 termextract_toolkit.py' + ' -m ' + mode + ' -d ' + dataset
+    # resp = commands.getoutput('%s' % (termCommand))
+    # print('resp:---' + resp + '---')
+    pass
+
+
+def get_terms(method, files):
+    termCommand = 'python3 termextract_toolkit.py -m multi-analysis ' + ' -t ' + method + ' -f ' + "\"" + files + "\""
+    resp = commands.getoutput('%s' % (termCommand))
+    # print('resp:---' + resp + '---')
+    terms = resp.split('\n')
+    return terms[0:TOPN]
+
+
 def get_topics(corpus, dictionary):
     topics = []
 
@@ -247,6 +266,7 @@ def get_topics(corpus, dictionary):
 def cluster_docs(mode='cluster'):
     print('# MORPHOLOGICAL ANALYSIS ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     # docs, file_names, file_paths = get_docs(join(HOME, DATASET_PATH_1), LOCAL_MODE)
+    prepare_termextract()
 
     # print('save doc to file')
     # to_pickle(PICKLE_DOC, docs)
@@ -330,7 +350,9 @@ def cluster_docs(mode='cluster'):
 
         corpus = []
         categoried_file_names = []
+        fullpath_file_names = []
         for idx in dup[1]:
+            fullpath_file_names.append(filtered_file_name[idx])
             categoried_file_name = basename(filtered_file_name[idx])
             corpus.append(bow_docs[categoried_file_name])
             categoried_file_names.append(categoried_file_name)
@@ -338,6 +360,7 @@ def cluster_docs(mode='cluster'):
         cluster_result_doc[str(dup[0])] = ",".join(categoried_file_names).encode('utf-8')
 
         topics = get_topics(corpus, dct)
+        # topics = get_terms('lr', ",".join(fullpath_file_names).encode('utf-8'))
         cluster_result_word[str(dup[0])] = ",".join(topics).decode('utf-8')
 
         outputfilename = str(dup[0])
@@ -345,16 +368,12 @@ def cluster_docs(mode='cluster'):
             json.dump(topics, outfile)
         word_cloud.create_wordcloud(" ".join(topics).decode('utf-8'), outputfilename)
 
-    with open('cluster_result_doc.json', 'wb') as outfile:
+    with open('documents.json', 'wb') as outfile:
         json.dump(cluster_result_doc, outfile)
 
-    with open('cluster_result_word.json', 'wb') as outfile:
+    with open('attribute2.json', 'wb') as outfile:
         json.dump(cluster_result_word, outfile)
 
     pass
 
-
-
-
-
-cluster_docs()
+# cluster_docs()

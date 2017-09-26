@@ -42,18 +42,37 @@ def stroe_df_lr(data_set_path):
     df.close
 
 
+def get_frequency_4files(file_names):
+    plain_text = ""
+
+    for file_name in file_names:
+        try:
+            f = open(file_name, "r", encoding="shift_jis")
+            plain_text += f.read()
+            f.close
+        except Exception as e:
+            if type(e) is UnicodeDecodeError:
+                # print('An UnicodeDecodeError! ' + file_name)
+                pass
+        pass
+
+    frequency = termextract.japanese_plaintext.cmp_noun_dict(plain_text)
+    return frequency
+
+
+
 def get_frequency(file_name):
-    tagged_text = ""
+    plain_text = ""
     try:
         f = open(file_name, "r", encoding="shift_jis")
-        tagged_text = f.read()
+        plain_text = f.read()
         f.close
     except Exception as e:
         if type(e) is UnicodeDecodeError:
             # print('An UnicodeDecodeError! ' + file_name)
             pass
 
-    frequency = termextract.japanese_plaintext.cmp_noun_dict(tagged_text)
+    frequency = termextract.japanese_plaintext.cmp_noun_dict(plain_text)
     return frequency
 
 
@@ -65,8 +84,40 @@ def calculate_importance(dict1, dict2):
         print(termextract.core.modify_agglutinative_lang(cmp_noun), sep="\t")
 
 
+def get_terms_LR_4files(file_names):
+    # make LR
+    frequency = get_frequency_4files(file_names)
+    # pprint(frequency)
+    lr = dbm.open("lr", "r")
+    LR = termextract.core.score_lr(frequency,
+                                   ignore_words=termextract.mecab.IGNORE_WORDS,
+                                   lr_mode=1, average_rate=1, dbm=lr
+                                   )
+    lr.close
+    # pprint(LR)
 
-def get_term_LR(file_name):
+    # calculate importance
+    calculate_importance(frequency, LR)
+
+
+def get_terms_TFIDF_4files(file_names):
+    # make TF
+    frequency = get_frequency_4files(file_names)
+    # pprint(frequency)
+    TF = termextract.core.frequency2tf(frequency)
+    # pprint(TF)
+
+    # make IDF
+    df = dbm.open("df", "r")
+    IDF = termextract.core.get_idf(frequency, dbm=df)
+    df.close
+    # pprint(IDF)
+
+    # calculate importance
+    calculate_importance(TF, IDF)
+
+
+def get_terms_LR(file_name):
     # make LR
     frequency = get_frequency(file_name)
     # pprint(frequency)
@@ -82,7 +133,7 @@ def get_term_LR(file_name):
     calculate_importance(frequency, LR)
 
 
-def get_term_TFIDF(file_name):
+def get_terms_TFIDF(file_name):
 
     # make TF
     frequency = get_frequency(file_name)
@@ -102,28 +153,49 @@ def get_term_TFIDF(file_name):
 
 def main(argv):
     inputfile = ''
+    file_names = []
     inputdataset = ''
+    mode = ''
+    method = ''
 
     try:
-        opts, args = getopt.getopt(argv, "hi:d", ["ifile=", "dataset"])
+        opts, args = getopt.getopt(argv, "hi:f:d:t:m:t", ["ifile=", "files=", "dataset=", "method=", "mode="])
     except getopt.GetoptError:
-        print('python3 termextract_toolkit.py -i <inputfile>')
+        print('python3 termextract_toolkit.py -m <mode> -t <analysismethod> -i <inputfile> -f <inputfiles> -d <dataset>')
         sys.exit(2)
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
-            print('python3 termextract_toolkit.py -i <inputfile> - d <inputdataset>')
+            print('python3 termextract_toolkit.py -m <mode> -t <analysismethod> -i <inputfile> -f <inputfiles> -d <dataset>')
             sys.exit()
+        elif opt in ('-m', '--mode'):
+            mode = arg
+            # print('Mode is ' + mode)
+        elif opt in ('-t', '--method'):
+            method = arg
+            # print('Mode is ' + mode)
         elif opt in ('-i', '--ifile'):
             inputfile = arg
             # print('Input file is ' + inputfile)
+        elif opt in ('-f', '--files'):
+            file_names = arg.split(',')
         elif opt in ('-d', '--dataset'):
             inputdataset = arg
             # print('Input dataset is ' + inputdataset)
 
-    stroe_df_lr(inputdataset)
-    get_term_TFIDF(inputfile)
-    get_term_LR(inputfile)
+    if mode == 'store':
+        stroe_df_lr(inputdataset)
+        pass
+    elif mode == 'analysis':
+        if method == 'tfidf':
+            get_terms_TFIDF(inputfile)
+        elif method == 'lr':
+            get_terms_LR(inputfile)
+    elif mode == 'multi-analysis':
+        if method == 'tfidf':
+            get_terms_TFIDF_4files(file_names)
+        elif method == 'lr':
+            get_terms_LR_4files(file_names)
 
     pass
 
