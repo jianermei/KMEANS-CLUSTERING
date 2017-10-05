@@ -20,22 +20,29 @@
 
         // get other input data
         var inputPath = $scope.path;
+        var inputRangeS = $scope.range_start
+        var inputRangeE = $scope.range_end
         var inputMode = $scope.mode;
 
         $log.log("Path:");
         $log.log(inputPath)
+        $log.log("Start:");
+        $log.log(inputRangeS)
+        $log.log("End:");
+        $log.log(inputRangeE)
         $log.log("Mode:");
         $log.log(inputMode)
 
 
         // fire the API request
-        $http.post('/start', {"url": userInput}).
+        $http.post('/start', {"url": userInput, "path": inputPath, "range_start": inputRangeS, "range_end": inputRangeE, "mode": inputMode}).
           success(function(results) {
+            $log.log("jobID")
             $log.log(results);
             getWordCount(results);
             $scope.wordcounts = null;
             $scope.loading = true;
-            $scope.submitButtonText = 'Loading...';
+            $scope.submitButtonText = 'Analyzing...';
             $scope.urlerror = false;
           }).
           error(function(error) {
@@ -55,7 +62,10 @@
             if(status === 202) {
               $log.log(data, status);
             } else if (status === 200){
+              $log.log("data:")
               $log.log(data);
+              $log.log("data type:")
+              $log.log(typeof(data));
               $scope.loading = false;
               $scope.submitButtonText = "Submit";
               $scope.wordcounts = data;

@@ -23,6 +23,8 @@ X, y = make_blobs(n_samples=500,
 
 
 def silhouette_analysis(X, range_n_clusters):
+    silhouette_scores = []
+
     for n_clusters in range_n_clusters:
         # Create a subplot with 1 row and 2 columns
         fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -45,6 +47,7 @@ def silhouette_analysis(X, range_n_clusters):
         # This gives a perspective into the density and separation of the formed
         # clusters
         silhouette_avg = silhouette_score(X, cluster_labels)
+        silhouette_scores.append(silhouette_avg)
         print("For n_clusters =", n_clusters,
               "The average silhouette_score is :", silhouette_avg)
 
@@ -107,8 +110,10 @@ def silhouette_analysis(X, range_n_clusters):
                       "with n_clusters = %d" % n_clusters),
                      fontsize=14, fontweight='bold')
 
-        plt.show()
-    pass
+        # plt.show()
+        plt.savefig('cluster_' + str(n_clusters) + '.png')
+
+    return silhouette_scores
 
 # range_n_clusters = [2, 3, 4, 5, 6]
 

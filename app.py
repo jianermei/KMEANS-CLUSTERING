@@ -14,6 +14,7 @@ from rq.job import Job
 from worker import conn
 from flask import jsonify
 import json
+from kmeans_clustering import cluster_docs
 
 
 os.environ["DATABASE_URL"] = "postgresql:///wordcount_dev"
@@ -26,6 +27,60 @@ db = SQLAlchemy(app)
 q = Queue(connection=conn)
 
 from models import Result
+
+
+def update_db_result(cluster_number_start, cluster_number_end, silhouette_scores):
+    errors = []
+
+    try:
+        result = Result(
+            url='',
+            result_all=[],
+            result_no_stop_words=[],
+            cluster_number_start=cluster_number_start,
+            cluster_number_end=cluster_number_end,
+            silhouette_scores=silhouette_scores
+        )
+        db.session.add(result)
+        db.session.commit()
+        print('result.id: ' + str(result.id))
+        return result.id
+    except Exception as e:
+        errors.append("Unable to add item to database.")
+        print('error: Unable to add item to database.')
+        print(e.message)
+        return {"error": e.message}
+    pass
+
+
+def analysis_kmeans_cluster_number(**kwargs):
+    path = kwargs.get('path')
+    mode = kwargs.get('mode')
+    range_s = kwargs.get('range_start')
+    range_e = kwargs.get('range_end')
+
+    print('set path: ' + path)
+    print('set mode: ' + mode)
+    print('set range start: ' + range_s)
+    print('set range end: ' + range_e)
+
+    ret = cluster_docs(mode)
+
+    silhouette_scores = []
+    if mode == 'silhouette_analysis':
+        silhouette_scores = [str(i) for i in ret]
+        print('silhouette_scores:')
+        print(silhouette_scores)
+        print('json format: ')
+        print(json.dumps(silhouette_scores))
+
+    return update_db_result(cluster_number_start=int(range_s), cluster_number_end=int(range_e), silhouette_scores=json.dumps(silhouette_scores))
+    pass
+
+
+def execute_kmeans_clustering():
+    pass
+
 
 def count_and_save_words(url):
 
@@ -97,13 +152,25 @@ def get_counts():
     # get url
     data = json.loads(request.data.decode())
     url = data["url"]
+    path = data["path"]
+    range_s = data["range_start"]
+    range_e = data["range_end"]
+    mode = data["mode"]
+
+    print('path: ' + path)
+    print('range_start: ' + range_s)
+    print('range_end: ' + range_e)
+    print('mode: ' + mode)
+
     if 'http://' not in url[:7]:
         url = 'http://' + url
     # start job
     job = q.enqueue_call(
-        func=count_and_save_words, args=(url,), result_ttl=5000
+        # func=count_and_save_words, args=(url,), result_ttl=5000
+        func=analysis_kmeans_cluster_number, kwargs={'path': path, 'mode': mode, 'range_start': range_s, 'range_end': range_e}, result_ttl=5000, timeout=600
     )
     # return created job id
+    print('jobID: ' + str(job.get_id))
     return job.get_id()
 
 
@@ -113,13 +180,38 @@ def get_results(job_key):
     job = Job.fetch(job_key, connection=conn)
 
     if job.is_finished:
+        # return "OK", 200
+        print('result id: ' + str(job.result))
         result = Result.query.filter_by(id=job.result).first()
-        results = sorted(
-            result.result_no_stop_words.items(),
-            key=operator.itemgetter(1),
-            reverse=True
-        )[:10]
-        return jsonify(results)
+        # results = sorted(
+        #     result.result_no_stop_words.items(),
+        #     key=operator.itemgetter(1),
+        #     reverse=True
+        # )[:10]
+        results = result.silhouette_scores
+        print('results type: ')
+        print(type(results))
+        print('results: ')
+        print(results)
+
+        results = re.sub('[\[\]\"]', '', results)
+        print('new results: ')
+        print(results)
+
+        scores = results.split(',')
+        print('scores: ')
+        print(scores)
+
+        print('from ' + str(result.cluster_number_start) + ' to ' + str(result.cluster_number_end))
+        clusters = list(range(int(result.cluster_number_start), int(result.cluster_number_end) + 1))
+        print('cluster: ')
+        print(clusters)
+
+        cluster_scores = dict(zip(clusters, scores))
+        print('cluster_scores:')
+        print(cluster_scores)
+
+        return jsonify(cluster_scores)
     else:
         return "Nay!", 202
 

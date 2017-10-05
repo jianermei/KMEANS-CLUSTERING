@@ -8,19 +8,34 @@
       .container {
         max-width: 1000px;
       }
+
+      img {
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 5px;
+          width: 150px;
+      }
+
+      img:hover {
+          box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
+      }
     </style>
   </head>
   <body ng-controller="WordcountController">
     <div class="container">
       <div class="row">
         <div class="col-sm-5 col-sm-offset-1">
-          <h1>Wordcount 3000</h1>
+          <h1>K-Means Clustering</h1>
           <br>
           <form role="form" ng-submit="getResults()">
             <div class="form-group">
               <input type="text" name="url" class="form-control" id="url-box" placeholder="Enter URL..." style="max-width: 300px;" ng-model="url" required>
               <input type="text" name="path" class="form-control" id="path-box" placeholder="Enter Path..." style="max-width: 300px;" ng-model="path" required>
-              <input type="text" name="mode" class="form-control" id="mode-box" placeholder="Enter Mode..." style="max-width: 300px;" ng-model="mode" required>
+              <input type="text" name="range_start" class="form-control" id="range-start-box" placeholder="Enter Cluster number(from)..." style="max-width: 300px;" ng-model="range_start" required>
+              <input type="text" name="range_end" class="form-control" id="range-end-box" placeholder="Enter Cluster number(to)..." style="max-width: 300px;" ng-model="range_end" required>
+              <input type="radio" name="mode" value="silhouette_analysis" checked="checked" ng-model="mode">Silhouette Analysis
+              <input type="radio" name="mode" value="elbow_analysis" ng-model="mode">Elbow Analysis
+              <input type="radio" name="mode" value="cluster" ng-model="mode">Clustering
             </div>
           {% raw %}
             <button type="submit" class="btn btn-primary"
@@ -35,22 +50,36 @@
           </div>
         </div>
         <div class="col-sm-5 col-sm-offset-1">
-          <h2>Frequencies</h2>
+          <h2>Results With Visualization</h2>
           <br>
           <div id="results">
             <table class="table table-striped">
               <thead>
                 <tr>
-                  <th>Word</th>
-                  <th>Count</th>
+                  <th>Cluster Number</th>
+                  <th>Silhouette Scores</th>
+                  <th>Plot</th>
                 </tr>
               </thead>
               <tbody>
+                <!--<tr>-->
+                  <!--<td>5</td>-->
+                  <!--<td>-->
+                    <!--<a target="_blank" href="cluster_5.png">-->
+                      <!--<img src="static/cluster_5.png" alt="Cluster number 5" style="width:150px">-->
+                    <!--</a>-->
+                  <!--</td>-->
+                <!--</tr>-->
                 {% raw %}
                   <tr ng-repeat="(key, val) in wordcounts">
 
                     <td>{{key}}</td>
                     <td>{{val}}</td>
+                    <td>
+                      <a target="_blank" href="static/cluster_{{key}}.png">
+                        <img src="static/cluster_{{key}}.png" alt="Cluster number {{key}}" style="width:150px">
+                      </a>
+                    </td>
 
                   </tr>
                 {% endraw %}

@@ -327,13 +327,13 @@ def cluster_docs(mode='cluster'):
         plt.plot(range(1, 40), distortions, marker='o')
         plt.xlabel('Number of clusters')
         plt.ylabel('Distortion')
-        plt.show()
+        # plt.show()
+        plt.savefig('elbow_analysis.png')
         return
 
     if mode == 'silhouette_analysis':
         range_n_clusters = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-        silhouette_analysis(cleanedList, range_n_clusters)
-        return
+        return silhouette_analysis(cleanedList, range_n_clusters)
 
     result = KMeans(n_clusters=num_topics).fit_predict(cleanedList)
     for i, docname in enumerate(filtered_file_name):
@@ -376,4 +376,4 @@ def cluster_docs(mode='cluster'):
 
     pass
 
-# cluster_docs()
+# cluster_docs('elbow_analysis')
