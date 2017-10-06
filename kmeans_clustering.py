@@ -231,9 +231,9 @@ def get_content(file_path, mode=LOCAL_MODE):
     return content
 
 
-def prepare_termextract():
+def prepare_termextract(dataset):
     mode = 'store'
-    dataset = join(HOME, DATASET_PATH_1)
+    # dataset = join(HOME, DATASET_PATH_1)
     termCommand = 'python3 termextract_toolkit.py' + ' -m ' + mode + ' -d ' + dataset
     # resp = commands.getoutput('%s' % (termCommand))
     # print('resp:---' + resp + '---')
@@ -265,8 +265,8 @@ def get_topics(corpus, dictionary):
 
 def cluster_docs(mode='cluster', range_s=1, range_e=1):
     print('# MORPHOLOGICAL ANALYSIS ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
-    # docs, file_names, file_paths = get_docs(join(HOME, DATASET_PATH_1), LOCAL_MODE)
-    prepare_termextract()
+    # docs, file_names, file_paths = get_docs(join(HOME, DATASET_PATH_2), REMOTE_MODE)
+    prepare_termextract(join(HOME, DATASET_PATH_2))
 
     # print('save doc to file')
     # to_pickle(PICKLE_DOC, docs)
@@ -292,6 +292,8 @@ def cluster_docs(mode='cluster', range_s=1, range_e=1):
         bow_docs[docname] = dct.doc2bow(docs[docname])
 
     print('# LSI Model ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+    num_topics = int(range_s)
+    print 'number of clusters', num_topics
     dimension = num_topics + 3
     lsi_model = gensim.models.LsiModel(bow_docs.values(), num_topics=dimension)
     lsi_docs = {}
@@ -345,6 +347,7 @@ def cluster_docs(mode='cluster', range_s=1, range_e=1):
     # then get LDA topics for this collected content
     cluster_result_doc = {}
     cluster_result_word = {}
+    word_lists = []
     for dup in sorted(list_duplicates(result)):
         print dup
 
@@ -363,8 +366,9 @@ def cluster_docs(mode='cluster', range_s=1, range_e=1):
         topics = get_topics(corpus, dct)
         # topics = get_terms('lr', ",".join(fullpath_file_names).encode('utf-8'))
         cluster_result_word[str(dup[0])] = ",".join(topics).decode('utf-8')
+        word_lists.append(",".join(topics))
 
-        outputfilename = str(dup[0])
+        outputfilename = 'static/wordcloud_' + str(dup[0]+1)
         with open(outputfilename+'.json', 'wb') as outfile:
             json.dump(topics, outfile)
         word_cloud.create_wordcloud(" ".join(topics).decode('utf-8'), outputfilename)
@@ -375,6 +379,6 @@ def cluster_docs(mode='cluster', range_s=1, range_e=1):
     with open('attribute2.json', 'wb') as outfile:
         json.dump(cluster_result_word, outfile)
 
-    pass
+    return word_lists
 
-# cluster_docs('elbow_analysis')
+# cluster_docs()

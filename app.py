@@ -29,7 +29,7 @@ q = Queue(connection=conn)
 from models import Result
 
 
-def update_db_result(cluster_number_start, cluster_number_end, silhouette_scores):
+def update_db_result(cluster_number_start, cluster_number_end, silhouette_scores, word_lists):
     errors = []
 
     try:
@@ -39,7 +39,8 @@ def update_db_result(cluster_number_start, cluster_number_end, silhouette_scores
             result_no_stop_words=[],
             cluster_number_start=cluster_number_start,
             cluster_number_end=cluster_number_end,
-            silhouette_scores=silhouette_scores
+            silhouette_scores=silhouette_scores,
+            word_lists=word_lists
         )
         db.session.add(result)
         db.session.commit()
@@ -67,6 +68,7 @@ def analysis_kmeans_cluster_number(**kwargs):
     ret = cluster_docs(mode, range_s, range_e)
 
     silhouette_scores = []
+    word_lists = []
     if mode == 'silhouette_analysis':
         silhouette_scores = [str(i) for i in ret]
         print('silhouette_scores:')
@@ -75,8 +77,14 @@ def analysis_kmeans_cluster_number(**kwargs):
         print(json.dumps(silhouette_scores))
     elif mode == 'elbow_analysis':
         pass
+    elif mode == 'cluster':
+        word_lists = ret
+        print('word_lists:')
+        print(word_lists)
+        print('json format: ')
+        print(json.dumps(word_lists))
 
-    return update_db_result(cluster_number_start=int(range_s), cluster_number_end=int(range_e), silhouette_scores=json.dumps(silhouette_scores))
+    return update_db_result(cluster_number_start=int(range_s), cluster_number_end=int(range_e), silhouette_scores=json.dumps(silhouette_scores), word_lists=word_lists)
     pass
 
 
@@ -169,7 +177,7 @@ def get_counts():
     # start job
     job = q.enqueue_call(
         # func=count_and_save_words, args=(url,), result_ttl=5000
-        func=analysis_kmeans_cluster_number, kwargs={'path': path, 'mode': mode, 'range_start': range_s, 'range_end': range_e}, result_ttl=5000, timeout=600
+        func=analysis_kmeans_cluster_number, kwargs={'path': path, 'mode': mode, 'range_start': range_s, 'range_end': range_e}, result_ttl=5000, timeout=60 * 60
     )
     # return created job id
     print('jobID: ' + str(job.get_id))
@@ -196,6 +204,7 @@ def get_results(job_key):
         print('silhouette_scores: ')
         print(silhouette_scores)
 
+        # TODO: should use a better judge method
         if silhouette_scores != '[]':
             # silhouette_analysis mode
             silhouette_scores = re.sub('[\[\]\"]', '', silhouette_scores)
@@ -217,15 +226,30 @@ def get_results(job_key):
 
             return jsonify(cluster_scores), 200
         else:
-            # elbow_analysis mode
             print('from ' + str(result.cluster_number_start) + ' to ' + str(result.cluster_number_end))
-            cluster_range = str(result.cluster_number_start) + '~' + str(result.cluster_number_end)
-            print('cluster_range: ' + cluster_range)
-            return cluster_range, 201
-            pass
 
+            # TODO: should use a better judge method
+            if int(result.cluster_number_start) < int(result.cluster_number_end):
+                # elbow_analysis mode
+                cluster_range = str(result.cluster_number_start) + '~' + str(result.cluster_number_end)
+                print('cluster_range: ' + cluster_range)
+                return cluster_range, 201
+            elif int(result.cluster_number_start) == int(result.cluster_number_start):
+                # cluster mode
+                word_lists = result.word_lists
+                print('word_lists type: ')
+                print(type(word_lists))
+                print('word_lists: ')
+                print(word_lists)
 
+                group_num = list(range(1, int(result.cluster_number_start) + 1))
+                print('group_num: ')
+                print(group_num)
 
+                cluster_results = dict(zip(group_num, word_lists))
+                print('cluster_results:')
+                print(cluster_results)
+                return jsonify(cluster_results), 203
     else:
         return "Nay!", 202
 

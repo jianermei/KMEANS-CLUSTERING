@@ -84,6 +84,17 @@
               $scope.cluster_range = data
               $timeout.cancel(timeout);
               return false;
+            } else if (status == 203) {
+              // cluster mode
+              $log.log("data:")
+              $log.log(data);
+              $log.log("data type:")
+              $log.log(typeof(data));
+              $scope.loading = false;
+              $scope.submitButtonText = "Submit";
+              $scope.wordresults = data
+              $timeout.cancel(timeout);
+              return false;
             }
             // continue to call the poller() function every 2 seconds
             // until the timeout is cancelled
