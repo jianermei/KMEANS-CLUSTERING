@@ -111,7 +111,7 @@ def silhouette_analysis(X, range_n_clusters):
                      fontsize=14, fontweight='bold')
 
         # plt.show()
-        plt.savefig('cluster_' + str(n_clusters) + '.png')
+        plt.savefig('static/cluster_' + str(n_clusters) + '.png')
 
     return silhouette_scores
 

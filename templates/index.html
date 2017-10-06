@@ -58,7 +58,7 @@
                 <tr>
                   <th>Cluster Number</th>
                   <th>Silhouette Scores</th>
-                  <th>Plot</th>
+                  <th>Silhouette Analysis Plot</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,17 +71,36 @@
                   <!--</td>-->
                 <!--</tr>-->
                 {% raw %}
-                  <tr ng-repeat="(key, val) in wordcounts">
+                <tr ng-repeat="(key, val) in wordcounts">
 
-                    <td>{{key}}</td>
-                    <td>{{val}}</td>
-                    <td>
-                      <a target="_blank" href="static/cluster_{{key}}.png">
-                        <img src="static/cluster_{{key}}.png" alt="Cluster number {{key}}" style="width:150px">
-                      </a>
-                    </td>
-
-                  </tr>
+                  <td>{{key}}</td>
+                  <td>{{val}}</td>
+                  <td>
+                    <a target="_blank" href="static/cluster_{{key}}.png">
+                      <img src="static/cluster_{{key}}.png" alt="Cluster number {{key}}" style="width:150px">
+                    </a>
+                  </td>
+                </tr>
+                {% endraw %}
+              </tbody>
+            </table>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Cluster Number Range</th>
+                  <th>Elbow Analysis Plot</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% raw %}
+                <tr>
+                  <td>{{cluster_range}}</td>
+                  <td>
+                    <a target="_blank" href="static/elbow_analysis_{{cluster_range}}.png">
+                      <img src="static/elbow_analysis_{{cluster_range}}.png" alt="Elbow Analysis {{cluster_range}}" style="width:150px">
+                    </a>
+                  </td>
+                </tr>
                 {% endraw %}
               </tbody>
             </table>

@@ -263,7 +263,7 @@ def get_topics(corpus, dictionary):
     return topics
 
 
-def cluster_docs(mode='cluster'):
+def cluster_docs(mode='cluster', range_s=1, range_e=1):
     print('# MORPHOLOGICAL ANALYSIS ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     # docs, file_names, file_paths = get_docs(join(HOME, DATASET_PATH_1), LOCAL_MODE)
     prepare_termextract()
@@ -315,7 +315,7 @@ def cluster_docs(mode='cluster'):
     # find optimal cluster numbers
     if mode == 'elbow_analysis':
         distortions = []
-        for i in range(1, 40):  # 1~10クラスタまで一気に計算
+        for i in range(int(range_s), int(range_e)):  # 1~10クラスタまで一気に計算
             km = KMeans(n_clusters=i,
                         init='k-means++',  # k-means++法によりクラスタ中心を選択
                         n_init=10,
@@ -324,15 +324,16 @@ def cluster_docs(mode='cluster'):
             km.fit(cleanedList)  # クラスタリングの計算を実行
             distortions.append(km.inertia_)  # km.fitするとkm.inertia_が得られる
 
-        plt.plot(range(1, 40), distortions, marker='o')
+        plt.plot(range(int(range_s), int(range_e)), distortions, marker='o')
         plt.xlabel('Number of clusters')
         plt.ylabel('Distortion')
         # plt.show()
-        plt.savefig('elbow_analysis.png')
+        plt.savefig('static/elbow_analysis_'+ range_s + '~' + range_e +  '.png')
         return
 
     if mode == 'silhouette_analysis':
-        range_n_clusters = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        # range_n_clusters = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        range_n_clusters = list(range(int(range_s), int(range_e)+1))
         return silhouette_analysis(cleanedList, range_n_clusters)
 
     result = KMeans(n_clusters=num_topics).fit_predict(cleanedList)

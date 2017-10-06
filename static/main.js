@@ -41,6 +41,7 @@
             $log.log(results);
             getWordCount(results);
             $scope.wordcounts = null;
+            $scope.cluster_range = null
             $scope.loading = true;
             $scope.submitButtonText = 'Analyzing...';
             $scope.urlerror = false;
@@ -62,6 +63,7 @@
             if(status === 202) {
               $log.log(data, status);
             } else if (status === 200){
+              // silhouette_analysis mode
               $log.log("data:")
               $log.log(data);
               $log.log("data type:")
@@ -69,6 +71,17 @@
               $scope.loading = false;
               $scope.submitButtonText = "Submit";
               $scope.wordcounts = data;
+              $timeout.cancel(timeout);
+              return false;
+            } else if (status == 201) {
+              // elbow_analysis mode
+              $log.log("data:")
+              $log.log(data);
+              $log.log("data type:")
+              $log.log(typeof(data));
+              $scope.loading = false;
+              $scope.submitButtonText = "Submit";
+              $scope.cluster_range = data
               $timeout.cancel(timeout);
               return false;
             }

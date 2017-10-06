@@ -64,7 +64,7 @@ def analysis_kmeans_cluster_number(**kwargs):
     print('set range start: ' + range_s)
     print('set range end: ' + range_e)
 
-    ret = cluster_docs(mode)
+    ret = cluster_docs(mode, range_s, range_e)
 
     silhouette_scores = []
     if mode == 'silhouette_analysis':
@@ -73,6 +73,8 @@ def analysis_kmeans_cluster_number(**kwargs):
         print(silhouette_scores)
         print('json format: ')
         print(json.dumps(silhouette_scores))
+    elif mode == 'elbow_analysis':
+        pass
 
     return update_db_result(cluster_number_start=int(range_s), cluster_number_end=int(range_e), silhouette_scores=json.dumps(silhouette_scores))
     pass
@@ -188,30 +190,42 @@ def get_results(job_key):
         #     key=operator.itemgetter(1),
         #     reverse=True
         # )[:10]
-        results = result.silhouette_scores
-        print('results type: ')
-        print(type(results))
-        print('results: ')
-        print(results)
+        silhouette_scores = result.silhouette_scores
+        print('silhouette_scores type: ')
+        print(type(silhouette_scores))
+        print('silhouette_scores: ')
+        print(silhouette_scores)
 
-        results = re.sub('[\[\]\"]', '', results)
-        print('new results: ')
-        print(results)
+        if silhouette_scores != '[]':
+            # silhouette_analysis mode
+            silhouette_scores = re.sub('[\[\]\"]', '', silhouette_scores)
+            print('new silhouette_scores: ')
+            print(silhouette_scores)
 
-        scores = results.split(',')
-        print('scores: ')
-        print(scores)
+            scores = silhouette_scores.split(',')
+            print('scores: ')
+            print(scores)
 
-        print('from ' + str(result.cluster_number_start) + ' to ' + str(result.cluster_number_end))
-        clusters = list(range(int(result.cluster_number_start), int(result.cluster_number_end) + 1))
-        print('cluster: ')
-        print(clusters)
+            print('from ' + str(result.cluster_number_start) + ' to ' + str(result.cluster_number_end))
+            clusters = list(range(int(result.cluster_number_start), int(result.cluster_number_end) + 1))
+            print('cluster: ')
+            print(clusters)
 
-        cluster_scores = dict(zip(clusters, scores))
-        print('cluster_scores:')
-        print(cluster_scores)
+            cluster_scores = dict(zip(clusters, scores))
+            print('cluster_scores:')
+            print(cluster_scores)
 
-        return jsonify(cluster_scores)
+            return jsonify(cluster_scores), 200
+        else:
+            # elbow_analysis mode
+            print('from ' + str(result.cluster_number_start) + ' to ' + str(result.cluster_number_end))
+            cluster_range = str(result.cluster_number_start) + '~' + str(result.cluster_number_end)
+            print('cluster_range: ' + cluster_range)
+            return cluster_range, 201
+            pass
+
+
+
     else:
         return "Nay!", 202
 
