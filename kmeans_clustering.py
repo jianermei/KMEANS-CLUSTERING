@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import matplotlib
+matplotlib.use('Agg')
 import os
 from os.path import join, dirname
 import MeCab
@@ -340,7 +342,7 @@ def cluster_docs(mode='cluster', range_s=1, range_e=1):
 
     result = KMeans(n_clusters=num_topics).fit_predict(cleanedList)
     for i, docname in enumerate(filtered_file_name):
-        print docname, 'cluster', result[i]
+        print docname.encode('utf-8'), 'cluster', result[i]
 
     print('# Show topics ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     # find same items in result and collect them from docname

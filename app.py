@@ -3,7 +3,7 @@ import requests
 import operator
 import re
 import nltk
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for, redirect
 # from flask.ext.sqlalchemy import SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
 from stop_words import stops
@@ -253,6 +253,10 @@ def get_results(job_key):
     else:
         return "Nay!", 202
 
+
+@app.route("/k-means")
+def kmeans():
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run()

@@ -42,8 +42,14 @@ def create_wordcloud(text, save_file_name):
                   u'それ', u'ここ', u'ちゃん', u'くん', u'', u'て', u'に', u'を', u'は', u'の', u'が', u'と', u'た', u'し', u'で', \
                   u'ない', u'も', u'な', u'い', u'か', u'ので', u'よう', u'']
 
+    stop_words_new = ['てる', 'いる', 'なる', 'れる', 'する', 'ある', 'こと', 'これ', 'さん', 'して', \
+                  'くれる', 'やる', 'くださる', 'そう', 'せる', 'した', '思う', \
+                  'それ', 'ここ', 'ちゃん', 'くん', '', 'て', 'に', 'を', 'は', 'の', 'が', 'と', 'た', 'し', 'で', \
+                  'ない', 'も', 'な', 'い', 'か', 'ので', 'よう', '']
+
+
     wordcloud = WordCloud(background_color="white", font_path=fpath, width=900, height=500, \
-                          stopwords=set(stop_words)).generate(text)
+                          stopwords=set(stop_words_new)).generate(text)
 
     plt.figure(figsize=(15, 12))
     img = plt.imshow(wordcloud)
