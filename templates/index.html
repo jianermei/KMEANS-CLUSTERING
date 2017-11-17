@@ -110,6 +110,7 @@
                   <th>Group Number</th>
                   <th>WordCloud</th>
                   <th>Word List</th>
+                  <th>Clustering Result</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,6 +123,9 @@
                     </a>
                   </td>
                   <td>{{list}}</td>
+                  <td>
+                    <a target="_blank" href="static/clustering_result_{{num}}.txt">cluster {{num}}</a>
+                  </td>
                 </tr>
                 {% endraw %}
               </tbody>

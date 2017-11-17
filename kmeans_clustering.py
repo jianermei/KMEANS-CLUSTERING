@@ -20,6 +20,7 @@ from kmeans_cluster_numbers import silhouette_analysis
 import matplotlib.pyplot as plt
 import commands
 import urlparse
+import re
 
 
 HOME = os.path.expanduser("~")
@@ -310,6 +311,31 @@ def getIP(url):
     result = urlparse.urlparse(url)
     return result[1]
 
+def removeClusteringResult(dir, pattern):
+    for f in os.listdir(dir):
+        if re.search(pattern, f):
+            os.remove(os.path.join(dir, f))
+    pass
+
+
+def saveClusteringResult(docname, result):
+    removeClusteringResult(os.getcwd() + '/static', 'clustering_result_*')
+
+    for idx in range(len(result)):
+        num_cluster = result[idx]
+        file_path = os.getcwd() + '/static/clustering_result_' + str(num_cluster) + '.txt'
+
+        if os.path.exists(file_path):
+            f = open(file_path, mode='a')
+            f.write(docname[idx].encode('utf-8') + '\n')
+            f.close()
+        else:
+            f = open(file_path, mode='w+')
+            f.write(docname[idx].encode('utf-8') + '\n')
+            f.close()
+        pass
+    pass
+
 
 def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
     print('# MORPHOLOGICAL ANALYSIS ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
@@ -401,6 +427,8 @@ def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
     for i, docname in enumerate(filtered_file_name):
         print docname.encode('utf-8'), 'cluster', result[i]
 
+    saveClusteringResult(filtered_file_name, result)
+
     print('# Show topics ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     # find same items in result and collect them from docname
     # then get LDA topics for this collected content
@@ -440,4 +468,4 @@ def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
 
     return word_lists
 
-# cluster_docs(url='http://10.155.37.21:8081/fessfile/search/?q=%E5%8C%BB%E7%99%82', path="/home/huang/reviewData", mode='cluster', range_s=10, range_e=10)
+# cluster_docs(url='http://10.155.37.21:8081/fess', path="/home/huang/reviewData", mode='cluster', range_s=10, range_e=10)
