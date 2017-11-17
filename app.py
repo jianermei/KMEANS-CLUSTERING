@@ -55,17 +55,19 @@ def update_db_result(cluster_number_start, cluster_number_end, silhouette_scores
 
 
 def analysis_kmeans_cluster_number(**kwargs):
+    url = kwargs.get('url')
     path = kwargs.get('path')
     mode = kwargs.get('mode')
     range_s = kwargs.get('range_start')
     range_e = kwargs.get('range_end')
 
+    print('set url: ' + url)
     print('set path: ' + path)
     print('set mode: ' + mode)
     print('set range start: ' + range_s)
     print('set range end: ' + range_e)
 
-    ret = cluster_docs(mode, range_s, range_e)
+    ret = cluster_docs(url, path, mode, range_s, range_e)
 
     silhouette_scores = []
     word_lists = []
@@ -167,6 +169,7 @@ def get_counts():
     range_e = data["range_end"]
     mode = data["mode"]
 
+    print('url:' + url)
     print('path: ' + path)
     print('range_start: ' + range_s)
     print('range_end: ' + range_e)
@@ -177,7 +180,7 @@ def get_counts():
     # start job
     job = q.enqueue_call(
         # func=count_and_save_words, args=(url,), result_ttl=5000
-        func=analysis_kmeans_cluster_number, kwargs={'path': path, 'mode': mode, 'range_start': range_s, 'range_end': range_e}, result_ttl=5000, timeout=60 * 60
+        func=analysis_kmeans_cluster_number, kwargs={'url':url, 'path': path, 'mode': mode, 'range_start': range_s, 'range_end': range_e}, result_ttl=5000, timeout=60 * 60
     )
     # return created job id
     print('jobID: ' + str(job.get_id))

@@ -19,11 +19,14 @@ import json
 from kmeans_cluster_numbers import silhouette_analysis
 import matplotlib.pyplot as plt
 import commands
+import urlparse
 
 
 HOME = os.path.expanduser("~")
 DATASET_PATH_1 = u'青空文庫2'
 DATASET_PATH_2 = u'trialdata'
+DATASET_PATH_3 = u'reviewData'
+DATASET_PATH_FILE = 'dataset_path.ini'
 FESS_FILE_SERVER = '10.155.37.21:8081'
 LOCAL_MODE = 'local'
 REMOTE_MODE = 'remote'
@@ -48,8 +51,8 @@ def to_pickle(filename, obj):
     pass
 
 
-def query_fessfile(query_words, db=None):
-    des = 'http://' + FESS_FILE_SERVER
+def query_fessfile(query_words, db=None, fess_file_server_ip=FESS_FILE_SERVER):
+    des = 'http://' + fess_file_server_ip
     content_list = []
     # query_words =[u'GUI', u'VxWorks', u'Windows', u'医療', u'OS', u'通信', u'UI', u'リスク', u'課題', u'施策']
     # query_words = [u'憲章']
@@ -153,7 +156,12 @@ def parse_mecab(text, word_list):
     pass
 
 
-def get_docs(data_set_path, data_set_mode=LOCAL_MODE):
+def get_docs(ip, data_set_path, data_set_mode=LOCAL_MODE):
+
+    print('ip: ' + ip)
+    print('data_set_path: ' + data_set_path)
+    print('data_set_mode: ' + data_set_mode)
+
     docs = {}
     file_names = []
     file_paths = []
@@ -170,7 +178,7 @@ def get_docs(data_set_path, data_set_mode=LOCAL_MODE):
 
         if data_set_mode == LOCAL_MODE:
             try:
-                f = codecs.open(file_path, 'r', 'shift_jis')
+                f = codecs.open(file_path, 'r', 'utf-8')
                 lines = f.readlines()
                 docs[docname] = []
                 file_names.append(docname)
@@ -183,7 +191,7 @@ def get_docs(data_set_path, data_set_mode=LOCAL_MODE):
                     continue
 
         elif data_set_mode == REMOTE_MODE:
-            fess_contents_list = query_fessfile(query_words=[docname])
+            fess_contents_list = query_fessfile(query_words=[docname], db=None, fess_file_server_ip=ip)
             if len(fess_contents_list) == 0:
                 print('\n' + docname + ' can not get contents!')
                 continue
@@ -237,7 +245,7 @@ def prepare_termextract(dataset):
     mode = 'store'
     # dataset = join(HOME, DATASET_PATH_1)
     termCommand = 'python3 termextract_toolkit.py' + ' -m ' + mode + ' -d ' + dataset
-    # resp = commands.getoutput('%s' % (termCommand))
+    resp = commands.getoutput('%s' % (termCommand))
     # print('resp:---' + resp + '---')
     pass
 
@@ -264,20 +272,69 @@ def get_topics(corpus, dictionary):
 
     return topics
 
+def pickleFileExist():
+    ret = False
 
-def cluster_docs(mode='cluster', range_s=1, range_e=1):
+    docPickle = os.getcwd() + '/' + PICKLE_DOC
+    namePickle = os.getcwd() + '/' + PICKLE_NAME
+    pathPickle = os.getcwd() + '/' + PICKLE_PATH
+
+    if os.path.exists(docPickle) and os.path.exists(namePickle) and os.path.exists(pathPickle):
+        ret = True
+
+    return  ret
+
+def samePath(path):
+    ret = False
+    filePath = os.getcwd() + '/' + DATASET_PATH_FILE
+
+    if os.path.exists(filePath):
+        f = open(filePath, mode='r+')
+        savedPath = f.read()
+        if savedPath == path:
+            ret = True
+        else:
+            f.seek(0)
+            f.truncate()
+            f.write(path)
+        f.close()
+    else:
+        f = open(filePath, mode='w+')
+        f.write(path)
+        f.close()
+
+    return ret
+
+
+def getIP(url):
+    result = urlparse.urlparse(url)
+    return result[1]
+
+
+def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
     print('# MORPHOLOGICAL ANALYSIS ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
-    # docs, file_names, file_paths = get_docs(join(HOME, DATASET_PATH_2), REMOTE_MODE)
-    prepare_termextract(join(HOME, DATASET_PATH_2))
+    # for test
+    # path = join(HOME, DATASET_PATH_3)
 
-    # print('save doc to file')
-    # to_pickle(PICKLE_DOC, docs)
-    # to_pickle(PICKLE_NAME, file_names)
-    # to_pickle(PICKLE_PATH, file_paths)
-    print('get doc from saved file ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
-    docs = unpickle(PICKLE_DOC)
-    file_names = unpickle(PICKLE_NAME)
-    file_paths = unpickle(PICKLE_PATH)
+    if samePath(path) and pickleFileExist():
+        print('get doc from saved file ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+        docs = unpickle(PICKLE_DOC)
+        file_names = unpickle(PICKLE_NAME)
+        file_paths = unpickle(PICKLE_PATH)
+    else:
+        print('get doc from ' + path)
+        getDocMode = LOCAL_MODE
+        ip = '0.0.0.0'
+        if "fessfile" in url:
+            getDocMode = REMOTE_MODE
+            ip = getIP(url)
+            pass
+        docs, file_names, file_paths = get_docs(ip, path, getDocMode)
+        to_pickle(PICKLE_DOC, docs)
+        to_pickle(PICKLE_NAME, file_names)
+        to_pickle(PICKLE_PATH, file_paths)
+
+    prepare_termextract(path)
 
     print('create dictionary ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     dct = gensim.corpora.Dictionary(docs.values())
@@ -383,4 +440,4 @@ def cluster_docs(mode='cluster', range_s=1, range_e=1):
 
     return word_lists
 
-# cluster_docs()
+# cluster_docs(url='http://10.155.37.21:8081/fessfile/search/?q=%E5%8C%BB%E7%99%82', path="/home/huang/reviewData", mode='cluster', range_s=10, range_e=10)
