@@ -332,7 +332,7 @@ def saveClusteringResult(docname, result):
 
     for idx in range(len(result)):
         num_cluster = result[idx]
-        file_path = os.getcwd() + '/static/clustering_result_' + str(num_cluster) + '.txt'
+        file_path = os.getcwd() + '/static/clustering_result_' + str(num_cluster + 1) + '.txt'
 
         if os.path.exists(file_path):
             f = open(file_path, mode='a')
