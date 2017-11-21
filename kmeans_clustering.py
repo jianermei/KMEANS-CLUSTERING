@@ -178,18 +178,27 @@ def get_docs(ip, data_set_path, data_set_mode=LOCAL_MODE):
             continue
 
         if data_set_mode == LOCAL_MODE:
-            try:
-                f = codecs.open(file_path, 'r', 'utf-8')
-                lines = f.readlines()
-                docs[docname] = []
-                file_names.append(docname)
-                file_paths.append(file_path)
-                parse_mecab(lines, docs[docname])
-                f.close()
-            except Exception as e:
-                if type(e) is UnicodeDecodeError:
-                    print('An UnicodeDecodeError! ' + docname)
-                    continue
+            encodingType = 'utf-8'
+            encodings = ['utf-8', 'shift_jis',  'cp932','euc_jp', 'iso2022_jp']
+            for e in encodings:
+                try:
+                    fh = codecs.open(file_path, 'r', encoding=e)
+                    fh.readlines()
+                    fh.seek(0)
+                except UnicodeDecodeError:
+                    print('[%s] got unicode error with %s, trying different encoding' % (file_path, e) )
+                else:
+                    encodingType = e
+                    print('opening the file with encoding: %s ' % e )
+                    break
+
+            f = codecs.open(file_path, 'r', encodingType)
+            lines = f.readlines()
+            docs[docname] = []
+            file_names.append(docname)
+            file_paths.append(file_path)
+            parse_mecab(lines, docs[docname])
+            f.close()
 
         elif data_set_mode == REMOTE_MODE:
             fess_contents_list = query_fessfile(query_words=[docname], db=None, fess_file_server_ip=ip)
