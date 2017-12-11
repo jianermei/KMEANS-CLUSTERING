@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import commands
 import urlparse
 import re
+import string
 
 
 HOME = os.path.expanduser("~")
@@ -143,10 +144,29 @@ def get_filepaths(directory):
     return file_paths  # Self-explanatory.
 
 
-def parse_mecab(text, word_list):
+def find_mecab_sysdic():
+    termCommand = 'mecab -D'
+    resp = commands.getoutput('%s' % (termCommand))
+    # print('resp:---' + resp + '---')
+    terms = resp.split('\n')
+    sysdic_file = terms[0]
+    sysdic_file_path = sysdic_file.split(':')[1].strip()
+    sysdic_folder_path = os.path.dirname(sysdic_file_path)
+
+    return sysdic_folder_path
+
+
+def parse_mecab(text, word_list, user_dic=None):
     # reference to list supporting append method
 
-    m = MeCab.Tagger(' -d /var/lib/mecab/dic/debian')
+    sysdic_path = find_mecab_sysdic()
+    # print('sysdic_path: ' + sysdic_path)
+
+    if user_dic is not None:
+        # print('use user dic: ' + user_dic)
+        m = MeCab.Tagger(' -d ' + sysdic_path + ' -u ' + user_dic)
+    else:
+        m = MeCab.Tagger(' -d ' + sysdic_path)
     for sentence in text:
         r = m.parseToNode(sentence.encode('utf-8'))
         while r:
@@ -155,6 +175,53 @@ def parse_mecab(text, word_list):
             word_list.append(mecabed_word)
             r = r.next
     pass
+
+
+def term2dic(word_list, data_path):
+    dic_name = 'user.dic'
+
+    # save word list to csv file(ipadic format)
+    wordlist_name = 'wordlist_' + str(dic_name.split('.')[0]) + '.csv'
+    f = codecs.open(wordlist_name, 'a', 'utf8')
+    for i in range(word_list.__len__()):
+        word = word_list[i]
+        csv_line = word.decode('utf-8') + u',,,1,名詞,一般,*,*,*,*,' + word.decode('utf-8') + u',*,*,ByMeCabEst'
+        f.write(csv_line + '\n')
+    f.close()
+
+    # convert csv file(ipadic format) to dic
+    modelFile = './mecab-ipadic-2.7.0-20070801.model'
+    dicdir = './mecab-ipadic-2.7.0-20070801'
+    userdicCommand = '/usr/lib/mecab/mecab-dict-index ' + \
+                     ' -m ' + modelFile + \
+                     ' -d ' + dicdir + \
+                     ' -f utf-8 -t utf-8 ' + \
+                     ' -u ' + dic_name + \
+                     '    ' + wordlist_name
+    resp = commands.getoutput(userdicCommand)
+    print('mecab creating result: ' + resp)
+
+    return dic_name
+
+
+def make_mecab_dic(data_path, data_mode):
+    dic_file = ''
+    if data_mode == LOCAL_MODE:
+        # TODO
+        # check whether user.dic exists already
+
+        prepare_termextract(data_path)
+
+        full_file_paths = get_filepaths(data_path)
+        terms = extract_terms('tfidf', ",".join(full_file_paths))
+
+        dic_file = term2dic(terms, data_path)
+    elif data_mode == REMOTE_MODE:
+        # TODO
+        pass
+
+
+    return dic_file
 
 
 def get_docs(ip, data_set_path, data_set_mode=LOCAL_MODE):
@@ -167,6 +234,9 @@ def get_docs(ip, data_set_path, data_set_mode=LOCAL_MODE):
     file_names = []
     file_paths = []
     full_file_paths = get_filepaths(data_set_path)
+
+    # create Mecab user dic
+    use_dic_file = make_mecab_dic(data_set_path, data_set_mode)
 
     pb = ProgressBar(maxval=len(full_file_paths)).start()
     for i, file_path in enumerate(full_file_paths):
@@ -189,7 +259,7 @@ def get_docs(ip, data_set_path, data_set_mode=LOCAL_MODE):
                     print('[%s] got unicode error with %s, trying different encoding' % (file_path, e) )
                 else:
                     encodingType = e
-                    print('opening the file with encoding: %s ' % e )
+                    # print('opening the file with encoding: %s ' % e )
                     break
 
             f = codecs.open(file_path, 'r', encodingType)
@@ -197,7 +267,7 @@ def get_docs(ip, data_set_path, data_set_mode=LOCAL_MODE):
             docs[docname] = []
             file_names.append(docname)
             file_paths.append(file_path)
-            parse_mecab(lines, docs[docname])
+            parse_mecab(lines, docs[docname], use_dic_file)
             f.close()
 
         elif data_set_mode == REMOTE_MODE:
@@ -251,6 +321,21 @@ def get_content(file_path, mode=LOCAL_MODE):
     return content
 
 
+def trim_noise(text):
+    stop_chacater = ['！', '”', '“', '＃', '＄', '％', '＆', '’', '‘', '（', '）', '＝', '～', '｜',
+                         '―', '＾', '￥', '＠', '「', '｀', '｛', '；', '：', '」', '＋', '＊', '｝', '、',
+                         '。', '・', '＜', '＞', '？', '＿', '!', '"', '#', '$', '%', '&', '\'', '(',
+                         ')', '-', '^', '\\', '=', '~', '|', '@', '[', '`', '{', ';', ':', ']',
+                         '+', '*', '}', ',', '.', '/', '', '<', '>', '?', '_', '■', '◆', '▲', '▼',
+                         '●', '⇒', '→', '←', '↓', '↑', '　', ' ' ,'①', '②', '③', '④', '⑤', '⑥',
+                         '⑦', '⑧', '⑨', '．']
+
+    for e in stop_chacater:
+        if e in text:
+            text = text.replace(e, '')
+
+    return text
+
 def prepare_termextract(dataset):
     mode = 'store'
     # dataset = join(HOME, DATASET_PATH_1)
@@ -260,12 +345,12 @@ def prepare_termextract(dataset):
     pass
 
 
-def get_terms(method, files):
-    termCommand = 'python3 termextract_toolkit.py -m multi-analysis ' + ' -t ' + method + ' -f ' + "\"" + files + "\""
+def extract_terms(method, files):
+    termCommand = 'python3 termextract_toolkit.py -m multi-analysis ' + ' -t ' + method + ' -f ' + "\"" + files.encode('utf-8') + "\""
     resp = commands.getoutput('%s' % (termCommand))
     # print('resp:---' + resp + '---')
-    terms = resp.split('\n')
-    return terms[0:TOPN]
+    terms = trim_noise(resp).split('\n')
+    return terms
 
 
 def get_topics(corpus, dictionary):
@@ -369,8 +454,6 @@ def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
         to_pickle(PICKLE_NAME, file_names)
         to_pickle(PICKLE_PATH, file_paths)
 
-    prepare_termextract(path)
-
     print('create dictionary ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
     dct = gensim.corpora.Dictionary(docs.values())
     print('extreme filter ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
@@ -459,8 +542,8 @@ def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
 
         cluster_result_doc[str(dup[0])] = ",".join(categoried_file_names).encode('utf-8')
 
-        topics = get_topics(corpus, dct)
-        # topics = get_terms('lr', ",".join(fullpath_file_names).encode('utf-8'))
+        # topics = get_topics(corpus, dct)
+        topics = extract_terms('tfidf', ",".join(fullpath_file_names))[0:TOPN]
         cluster_result_word[str(dup[0])] = ",".join(topics).decode('utf-8')
         word_lists.append(",".join(topics))
 
@@ -478,3 +561,4 @@ def cluster_docs(url, path, mode='cluster', range_s=1, range_e=1):
     return word_lists
 
 # cluster_docs(url='http://10.155.37.21:8081/fess', path="/home/huang/reviewData", mode='cluster', range_s=10, range_e=10)
+# make_mecab_dic('/home/huang/reviewData', LOCAL_MODE)

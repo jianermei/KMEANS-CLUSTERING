@@ -47,7 +47,7 @@ def get_frequency_4files(file_names):
 
     for file_name in file_names:
         try:
-            f = open(file_name, "r", encoding="shift_jis")
+            f = open(file_name, "r", encoding="utf-8")
             plain_text += f.read()
             f.close
         except Exception as e:
